@@ -1,36 +1,60 @@
 import streamlit as st
 import requests
+import pandas as pd
+import plotly.express as px
+from datetime import datetime
 
-# Set the app title 
-st.title('My First Doa Ibu !!')
+# Set app title
+st.title('🕌 Prayer Times by Location')
 
-# Add a welcome message 
-st.write('Welcome to Dunia!')
+# Input fields
+city = st.text_input('Enter City:', 'Kuala Lumpur')
+country = st.text_input('Enter Country:', 'Malaysia')
+date_input = st.date_input('Select a Date (optional):', datetime.now())
 
-# Create a text input 
-widgetuser_input = st.text_input('Enter a custom message:', 'Hello, Streamlit!')
+# Convert date to required format
+date_str = date_input.strftime('%d-%m-%Y')
 
-# Display the customized message 
-st.write('Customized Message:', widgetuser_input)
-
-# API call to get exchange rates with MYR as base
-response = requests.get('https://api.vatcomply.com/rates?base=MYR')
+# API call
+url = f'https://api.aladhan.com/v1/timingsByCity?city={city}&country={country}&method=3&date={date_str}'
+response = requests.get(url)
 
 if response.status_code == 200:
     data = response.json()
-    rates = data.get('rates', {})
+    timings = data['data']['timings']
     
-    # Create a dropdown to select target currency
-    currency_list = sorted(rates.keys())  # Sort for nicer dropdown
-    selected_currency = st.selectbox('Choose target currency:', currency_list)
+    st.subheader('🕰️ Prayer Times')
     
-    # Display the selected exchange rate
-    exchange_rate = rates.get(selected_currency)
-    st.write(f"1 MYR = {exchange_rate} {selected_currency}")
+    # Filter only the 5 daily prayers
+    prayer_times = {key: timings[key] for key in ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']}
+    st.table(prayer_times)
+
+    # Convert times to datetime for duration calculation
+    prayer_times_dt = {
+        k: datetime.strptime(v.split(' ')[0], '%H:%M') for k, v in prayer_times.items()
+    }
     
-    # Optionally show the full JSON (toggle)
-    if st.checkbox("Show all rates (JSON format)"):
-        st.json(data)
+    # Calculate gaps between prayers
+    prayer_names = list(prayer_times_dt.keys())
+    gaps = []
+    for i in range(len(prayer_names) - 1):
+        delta = (prayer_times_dt[prayer_names[i+1]] - prayer_times_dt[prayer_names[i]]).seconds / 3600
+        gaps.append(delta)
+    gaps.append(24 - sum(gaps))  # Time from Isha to next Fajr
+
+    # Pie chart
+    st.subheader('⏱️ Time Gaps Between Prayers')
+    fig = px.pie(
+        values=gaps,
+        names=[f"{prayer_names[i]} ➝ {prayer_names[i+1]}" if i < len(prayer_names)-1 else f"Isha ➝ Fajr (next day)"
+               for i in range(len(prayer_names))],
+        title='Time Gaps Between Each Prayer (in hours)'
+    )
+    st.plotly_chart(fig)
+
+else:
+    st.error(f"Failed to get data. Status code: {response.status_code}")
+
 else:
     st.error(f"API call failed with status code: {response.status_code}")
 
