@@ -2,10 +2,10 @@ import streamlit as st
 import requests
 
 # Set the app title 
-st.title('My First Bismillah !!')
+st.title('My First Doa Ibu !!')
 
 # Add a welcome message 
-st.write('Welcome to mobile legend!')
+st.write('Welcome to Dunia!')
 
 # Create a text input 
 widgetuser_input = st.text_input('Enter a custom message:', 'Hello, Streamlit!')
