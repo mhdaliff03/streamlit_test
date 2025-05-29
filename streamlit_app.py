@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Set the app title 
-st.title('My First Madnor Dan Cikgu !!') 
+st.title('My First Bismillah !!') 
 
 # Add a welcome message 
 st.write('Welcome to mobile legend!') 
